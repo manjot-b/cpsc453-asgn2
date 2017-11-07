@@ -9,8 +9,9 @@
 using namespace std;
 
 ImageDisplayer::ImageDisplayer(const char* _fileName) : 
-	modelView(1.0f), prevMouseX(0), prevMouseY(0), mouseX(0), mouseY(0),
-	mouseInWindow(false), leftMouseButtonHeld(false), holdingImage(false)
+	modelView(1.0f), scale(1.0f), prevMouseX(0), prevMouseY(0), mouseX(0), mouseY(0),
+	mouseInWindow(false), leftMouseButtonHeld(false), holdingImage(false),
+	grayScale(false), twoBitQuant(false), c_KeyHeld(false), v_KeyHeld(false)
 {
     verticies = {
                 //Triangle coords   	// texture coords
@@ -142,9 +143,19 @@ int ImageDisplayer::run()
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glUseProgram(shader->getProgramID());
+		
 		GLint modelViewLocation = glGetUniformLocation(shader->getProgramID(), "modelView");
 		glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, glm::value_ptr(modelView));
 
+		GLint grayScaleLocation = glGetUniformLocation(shader->getProgramID(), "grayScale");
+		glUniform1i(grayScaleLocation, grayScale);
+
+		GLint twoBitQuantLocation = glGetUniformLocation(shader->getProgramID(), "twoBitQuant");
+		glUniform1i(twoBitQuantLocation, twoBitQuant);
+
+		GLint scaleLocation = glGetUniformLocation(shader->getProgramID(), "scale");
+		glUniform1f(scaleLocation, scale);
+		
 		glBindTexture(GL_TEXTURE_2D, texture->getID());
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, indicies.size(), GL_UNSIGNED_INT, 0);
@@ -170,7 +181,7 @@ void ImageDisplayer::processInput(GLFWwindow *window)
 	prevMouseY = mouseY;
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
-	float scale = 1.0f;
+	//float scale = 1.0f;
 	float deltaX = 0.0f;
 	float deltaY = 0.0f;
 
@@ -186,20 +197,48 @@ void ImageDisplayer::processInput(GLFWwindow *window)
 		float openGLUnitsPerPixelY = 2.0f / windowHeight;
 		deltaX = (mouseX - prevMouseX) * openGLUnitsPerPixelX;
 		deltaY = -(mouseY - prevMouseY) * openGLUnitsPerPixelY;	// img y axis is inverted compared to opengl
-		cout << "X: " << mouseX << " Y: " << mouseY << endl;
-		cout << "dX: " << deltaX << " dY: " << deltaY << endl;
+		//cout << "X: " << mouseX << " Y: " << mouseY << endl;
+		//cout << "dX: " << deltaX << " dY: " << deltaY << endl;
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
 	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)	// zoom in
-		scale = 1.009f;	
+		scale *= 1.009f;	
 	if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)	// zoom out
-		scale = 1 / 1.009f;	
+		scale *= 0.991f;	
+	
+	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && !c_KeyHeld)
+	{
+		c_KeyHeld = true;
+		if (grayScale) 
+			grayScale = false;
+		else
+		{
+			grayScale = true;
+			twoBitQuant = false;
+		}
+	}
+	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_RELEASE)
+		c_KeyHeld = false;
+
+	if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS && !v_KeyHeld)
+	{
+		v_KeyHeld = true;
+		if (twoBitQuant) 
+			twoBitQuant = false;
+		else
+		{
+			twoBitQuant = true;
+			grayScale = false;			
+		}
+	}
+	if (glfwGetKey(window, GLFW_KEY_V) == GLFW_RELEASE)
+		v_KeyHeld = false;	
 
 	modelView = glm::translate(modelView, glm::vec3(deltaX, deltaY, 0));	
-	modelView = glm::scale(modelView, glm::vec3(scale, scale, 0));
+	//modelView = glm::scale(modelView, glm::vec3(scale, scale, 0));
 	
 }
 

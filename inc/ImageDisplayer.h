@@ -24,10 +24,15 @@ class ImageDisplayer
         std::vector<float> verticies;
         std::vector<unsigned int> indicies;
         glm::mat4 modelView;
+        float scale;
         double prevMouseX, prevMouseY, mouseX, mouseY;
         bool mouseInWindow;
         bool leftMouseButtonHeld;
         bool holdingImage;
+        bool grayScale;
+        bool twoBitQuant;
+        bool c_KeyHeld;
+        bool v_KeyHeld;
 
         void processInput(GLFWwindow *window);
         void adjustAspectRatio();
