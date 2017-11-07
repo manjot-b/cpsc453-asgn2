@@ -5,6 +5,7 @@
 #include "Texture.h"
 #include "Shader.h"
 #include <vector>
+#include <glm/glm.hpp>
 
 class ImageDisplayer
 {
@@ -22,8 +23,15 @@ class ImageDisplayer
         Shader *shader;
         std::vector<float> verticies;
         std::vector<unsigned int> indicies;
-        
+        glm::mat4 modelView;
+        double prevMouseX, prevMouseY, mouseX, mouseY;
+        bool mouseInWindow;
+        bool leftMouseButtonHeld;
+        bool holdingImage;
+
+        void processInput(GLFWwindow *window);
         void adjustAspectRatio();
+        void onCursorEnterCallback(GLFWwindow *window, int entered);
 };
 
 #endif

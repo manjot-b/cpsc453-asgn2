@@ -2,10 +2,15 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include "ImageDisplayer.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 using namespace std;
 
-ImageDisplayer::ImageDisplayer(const char* _fileName)
+ImageDisplayer::ImageDisplayer(const char* _fileName) : 
+	modelView(1.0f), prevMouseX(0), prevMouseY(0), mouseX(0), mouseY(0),
+	mouseInWindow(false), leftMouseButtonHeld(false), holdingImage(false)
 {
     verticies = {
                 //Triangle coords   	// texture coords
@@ -56,11 +61,46 @@ int ImageDisplayer::initWindow()
 	}
 
 	glViewport(0, 0, 800, 600);
+	glfwSetWindowUserPointer(window, this);
+
 	glfwSetFramebufferSizeCallback(window, 
 		[] (GLFWwindow *window, int width, int height) {
 			glViewport(0, 0, width, height);
 		}
 	);
+
+	glfwSetCursorEnterCallback(window, 
+		[] (GLFWwindow *window, int entered) {
+			if (entered)
+				static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->mouseInWindow = true;
+			else
+				static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->mouseInWindow = true;
+		}
+	);
+
+	glfwSetMouseButtonCallback(window,
+		[] (GLFWwindow *window, int button, int action, int mods) {
+			if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+				static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->leftMouseButtonHeld = true;
+			else 
+				static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->leftMouseButtonHeld = false;
+		}
+	);
+
+	/*glfwSetCursorPosCallback(window, 
+		[] (GLFWwindow *window, double xpos, double ypos) {
+			//cout << "X: " << xpos << " Y: " << ypos << endl;
+			static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->prevMouseX = 
+				static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->mouseX;
+			
+			static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->prevMouseY = 
+				static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->mouseY;
+			
+			static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->mouseX = xpos;
+			
+			static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->mouseY = ypos;
+		}
+	);*/
 	
 	glGenBuffers(1, &VBO); // gen 1 buffer and store id in VBO
 	glGenBuffers(1, &EBO);
@@ -96,10 +136,15 @@ int ImageDisplayer::run()
 {
 	while(!glfwWindowShouldClose(window))
 	{
-		glClearColor(0.2f, 0.5f, 0.3f, 1.0f);
+		processInput(window);
+
+		glClearColor(0.3f, 1.0f, 0.8f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glUseProgram(shader->getProgramID());
+		GLint modelViewLocation = glGetUniformLocation(shader->getProgramID(), "modelView");
+		glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, glm::value_ptr(modelView));
+
 		glBindTexture(GL_TEXTURE_2D, texture->getID());
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, indicies.size(), GL_UNSIGNED_INT, 0);
@@ -119,8 +164,52 @@ int ImageDisplayer::run()
 	return 0;
 }
 
+void ImageDisplayer::processInput(GLFWwindow *window)
+{
+	prevMouseX = mouseX;
+	prevMouseY = mouseY;
+	glfwGetCursorPos(window, &mouseX, &mouseY);
+
+	float scale = 1.0f;
+	float deltaX = 0.0f;
+	float deltaY = 0.0f;
+
+	if (mouseInWindow && leftMouseButtonHeld)
+		holdingImage = true;
+	if(!leftMouseButtonHeld)
+		holdingImage = false;
+	if (holdingImage)
+	{
+		int windowWidth, windowHeight;
+		glfwGetWindowSize(window, &windowWidth, &windowHeight);
+		float openGLUnitsPerPixelX = 2.0f / windowWidth;
+		float openGLUnitsPerPixelY = 2.0f / windowHeight;
+		deltaX = (mouseX - prevMouseX) * openGLUnitsPerPixelX;
+		deltaY = -(mouseY - prevMouseY) * openGLUnitsPerPixelY;	// img y axis is inverted compared to opengl
+		cout << "X: " << mouseX << " Y: " << mouseY << endl;
+		cout << "dX: " << deltaX << " dY: " << deltaY << endl;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, true);
+
+	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)	// zoom in
+		scale = 1.009f;	
+	if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)	// zoom out
+		scale = 1 / 1.009f;	
+
+	modelView = glm::translate(modelView, glm::vec3(deltaX, deltaY, 0));	
+	modelView = glm::scale(modelView, glm::vec3(scale, scale, 0));
+	
+}
+
 void ImageDisplayer::adjustAspectRatio()
 {
-	float ratio = (float)texture->getWidth() / texture->getHeight();
 	glfwSetWindowAspectRatio(window, texture->getWidth(), texture->getHeight());
+}
+
+void ImageDisplayer::onCursorEnterCallback(GLFWwindow *window, int entered)
+{
+	if (entered) mouseInWindow = true;
+	else mouseInWindow = false;
 }
