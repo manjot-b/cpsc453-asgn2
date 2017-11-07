@@ -1,8 +1,5 @@
-To compile the program simply open up a terminal window
-in this directory and run the 'make' command
+To run the program follow these steps 
+1) First create a bin directory and a obj directory in the root folder.
+2) Then simply open up a terminal window in the root directory  and run the 'make' command
+3) type 'bin/img_disp <image filename>' to execute the program
 
-The controles for the Hilbert Curve program are ase follows
-	N:	Generates the hilbert curve to the next level
-	B:	Generates the hilbert curve that is 1 level before the current one
-	Space:	Switches between GL_LINE_STRIP and GL_TRIANGLES
-	Esc:	Closes the window
