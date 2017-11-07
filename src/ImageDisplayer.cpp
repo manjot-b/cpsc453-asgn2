@@ -122,18 +122,5 @@ int ImageDisplayer::run()
 void ImageDisplayer::adjustAspectRatio()
 {
 	float ratio = (float)texture->getWidth() / texture->getHeight();
-	
-	verticies[0] = -1.0f;
-	verticies[1] = -1.0f + (2.0f - 2.0f / ratio) / 2;
-
-	verticies[5] = 1.0f;
-	verticies[6] = -1.0f + (2.0f - 2.0f / ratio) / 2;
-		
-	verticies[10] = 1.0f;
-	verticies[11] = 1.0f - (2.0f - 2.0f / ratio) / 2;
-
-	verticies[15] = -1.0f;
-	verticies[16] = -1.0f + (2.0f - 2.0f / ratio) / 2;
-	
-	glBufferData(GL_ARRAY_BUFFER, verticies.size() * sizeof(float), verticies.data(), GL_STATIC_DRAW);
+	glfwSetWindowAspectRatio(window, texture->getWidth(), texture->getHeight());
 }
