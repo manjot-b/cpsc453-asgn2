@@ -13,9 +13,9 @@ float convertTo2Bit(float value)
 	if (value >= 0 && value < 0.25)
 		return 0;
 	else if (value >= 0.25 && value < 0.5)
-		return 0.25;
+		return 0.33;
 	else if (value >= 0.5 && value < 0.75)
-		return 0.75;
+		return 0.66;
 	else
 		return 1;
 }
