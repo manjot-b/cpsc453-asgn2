@@ -6,6 +6,5 @@ out vec3 tcPosition;
 void main()
 {
     //glPointSize(50);
-    //gl_Position = vec4(vPosition, 1.0f);
-    tcPosition = vPosition;
+    gl_Position = vec4(vPosition, 1.0f);
 }

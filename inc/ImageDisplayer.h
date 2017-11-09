@@ -23,6 +23,7 @@ class ImageDisplayer
         Texture *texture;
         Shader *imgShader;
         Shader *catmullShader;
+        Shader *catmullPointShader;
         std::vector<float> verticies;
         std::vector<unsigned int> indicies;
         glm::mat4 modelView;

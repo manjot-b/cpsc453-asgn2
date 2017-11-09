@@ -32,13 +32,19 @@ ImageDisplayer::ImageDisplayer(const char* _fileName) :
 	imgShader = new Shader("rsc/vertex.glsl", "rsc/fragment.glsl");
 	imgShader->link();
 	catmullShader = new Shader("rsc/vertex2.glsl", "rsc/fragment2.glsl");
+	catmullShader->addShader("rsc/tessControl.glsl", GL_TESS_CONTROL_SHADER);
+	catmullShader->addShader("rsc/tessEvaluation.glsl", GL_TESS_EVALUATION_SHADER);
 	catmullShader->link();
+	catmullPointShader = new Shader("rsc/vertex3.glsl", "rsc/fragment2.glsl");
+	catmullPointShader->link();
 }
 
 ImageDisplayer::~ImageDisplayer()
 {
 	delete texture;
 	delete imgShader;
+	delete catmullShader;
+	delete catmullPointShader;
 }
 
 int ImageDisplayer::initWindow()
@@ -177,17 +183,22 @@ int ImageDisplayer::run()
 		glDrawElements(GL_TRIANGLES, indicies.size(), GL_UNSIGNED_INT, 0);
 		
 		//CATMULL POINTS
-		glUseProgram(catmullShader->getProgramID());
+		glUseProgram(catmullPointShader->getProgramID());
 		glBindVertexArray(VAO[1]);
 		glPointSize(25);
+		glDrawArrays(GL_POINTS, 0, catPoints.size() / 3);
+		
+		glUseProgram(catmullShader->getProgramID());
+		
 		if (rightMouseButtonClicked)
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
 			glBufferData(GL_ARRAY_BUFFER, catPoints.size() * sizeof(float), catPoints.data(), GL_STATIC_DRAW);
 			rightMouseButtonClicked = false;
 		}
-		glDrawArrays(GL_POINTS, 0, catPoints.size() / 3);	// 3 components per vertex
-
+		glPatchParameteri(GL_PATCH_VERTICES, 2);
+		glDrawArrays(GL_PATCHES, 0, catPoints.size() / 3);	// 3 components per vertex
+		
 		glBindVertexArray(0);
 		
 		glfwSwapBuffers(window);
