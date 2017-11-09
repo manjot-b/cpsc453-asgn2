@@ -30,7 +30,9 @@ ImageDisplayer::ImageDisplayer(const char* _fileName) :
 	texture = new Texture(_fileName);
 	adjustAspectRatio(); 
 	imgShader = new Shader("rsc/vertex.glsl", "rsc/fragment.glsl");
+	imgShader->link();
 	catmullShader = new Shader("rsc/vertex2.glsl", "rsc/fragment2.glsl");
+	catmullShader->link();
 }
 
 ImageDisplayer::~ImageDisplayer()

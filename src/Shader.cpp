@@ -11,28 +11,25 @@ using namespace std;
 
 Shader::Shader(string vertexPath, string fragmentPath)
 {
-	GLuint vertexShader = addShader(vertexPath, GL_VERTEX_SHADER);
-	GLuint fragmentShader = addShader(fragmentPath, GL_FRAGMENT_SHADER);
-	
 	ID = glCreateProgram();
-	glAttachShader(ID, vertexShader);
-	glAttachShader(ID, fragmentShader);
-	glLinkProgram(ID);
-
-	char infoLog[1024];
-	int success;
-	glGetProgramiv(ID, GL_LINK_STATUS, &success);
-	if (!success)
-	{
-		glGetProgramInfoLog(ID, 1024, NULL, infoLog);
-		cerr << "PROGRAM LINKAGE FAILED\n" << infoLog << endl;
-	}
-
-	glDeleteShader(vertexShader);	// no longer needed after linkage
-	glDeleteShader(fragmentShader);
+	
+	addShader(vertexPath, GL_VERTEX_SHADER);
+	addShader(fragmentPath, GL_FRAGMENT_SHADER);
+	
+	//glAttachShader(ID, vertexShader);
+	//glAttachShader(ID, fragmentShader);
+	
 }
 
-GLint Shader::addShader(string shaderPath, GLenum type)
+Shader::~Shader()
+{
+	for (auto const &shader : shaders)
+	{
+		glDeleteShader(shader);
+	}
+}
+
+bool Shader::addShader(string shaderPath, GLenum type)
 {
 	GLuint shader;
 	shader = glCreateShader(type);
@@ -54,13 +51,36 @@ GLint Shader::addShader(string shaderPath, GLenum type)
 				shaderType = "VERTEX"; break;
 			case GL_FRAGMENT_SHADER:
 				shaderType = "FRAGMENT"; break;
+			case GL_TESS_CONTROL_SHADER:
+				shaderType = "TESS CONTROL"; break;
+			case GL_TESS_EVALUATION_SHADER:
+				shaderType = "TESS EVALUATION"; break;
 		}
 		glGetShaderInfoLog(shader, 1024, NULL, infoLog);
 		cerr << shaderType << " SHADER COMPILATION FAILED\n" << infoLog << endl;
 		return 0;
 	}
-	return shader;
+	glAttachShader(ID, shader);
+	return success;
 
+}
+
+bool Shader::link()
+{
+	glLinkProgram(ID);
+	
+	char infoLog[1024];
+	int success;
+	glGetProgramiv(ID, GL_LINK_STATUS, &success);
+	if (!success)
+	{
+		glGetProgramInfoLog(ID, 1024, NULL, infoLog);
+		cerr << "PROGRAM LINKAGE FAILED\n" << infoLog << endl;
+		
+	}
+	return success;
+	//glDeleteShader(vertexShader);	// no longer needed after linkage
+	//glDeleteShader(fragmentShader);
 }
 
 string Shader::parseShader(string path)

@@ -10,6 +10,6 @@ out vec2 texCoord;
 void main()
 {
 	vec4 trans = modelView * vec4(aPos, 1.0f);
-	gl_Position = vec4(trans.xyz, scale);
+	gl_Position = vec4(trans.xyz, 1/scale);
 	texCoord = aTexture;
 }
