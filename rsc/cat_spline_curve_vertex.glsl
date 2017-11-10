@@ -2,7 +2,7 @@
 layout (location = 0) in vec3 vPosition;
 
 out vec3 tcPosition;
-uniform float scale = 1.0;
+//uniform float scale = 1.0;
 uniform mat4 modelView;
 
 void main()
