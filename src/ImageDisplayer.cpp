@@ -271,7 +271,9 @@ void ImageDisplayer::processInput(GLFWwindow *window)
 	if (rightMouseButtonClicked)
 	{
 		glm::mat4 inv = glm::inverse(modelView);
-		//cout << glm::to_string(modelView) << endl;
+		glm::mat4 test(1.0f);
+		test = glm::scale(test, glm::vec3(1.5f, 1.5f, 0.0f));
+		cout << glm::to_string(test) << endl;
 		//cout << glm::to_string(inv) << endl;
 		glm::vec4 points = inv * glm::vec4(-1.0f + mouseX * openGlUnitsPerPixelX,
 											1.0f -  mouseY * openGlUnitsPerPixelY,
