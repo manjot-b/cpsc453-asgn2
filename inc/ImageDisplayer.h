@@ -17,17 +17,17 @@ class ImageDisplayer
     
     private:
         GLFWwindow *window;
-        GLuint VBO[2], VAO[2];
-        GLuint EBO;
+        GLuint VBO[2], VAO[2], EBO[2];
         char *fileName;
         Texture *texture;
         Shader *imgShader;
         Shader *catmullShader;
         Shader *catmullPointShader;
-        std::vector<float> verticies;
-        std::vector<unsigned int> indicies;
+        std::vector<float> squareVertices;
+        std::vector<unsigned int> squareIndices;
         glm::mat4 modelView;
-        std::vector<float> catPoints;
+        std::vector<float> catVertices;
+        std::vector<unsigned int> catIndices;
         float scale;
         double prevMouseX, prevMouseY, mouseX, mouseY;
         bool mouseInWindow;

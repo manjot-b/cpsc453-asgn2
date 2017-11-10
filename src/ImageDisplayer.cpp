@@ -6,6 +6,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
 using namespace std;
 
 ImageDisplayer::ImageDisplayer(const char* _fileName) : 
@@ -13,7 +15,7 @@ ImageDisplayer::ImageDisplayer(const char* _fileName) :
 	mouseInWindow(false), leftMouseButtonHeld(false), rightMouseButtonClicked(false), 
 	holdingImage(false), grayScale(false), twoBitQuant(false), c_KeyHeld(false), v_KeyHeld(false)
 {
-    verticies = {
+    squareVertices = {
                 //Triangle coords   	// texture coords
                 -1.0f, -1.0f, 0.0f,		0.0f, 0.0f,
                 1.0f, -1.0f, 0.0f,		1.0f, 0.0f,
@@ -21,22 +23,26 @@ ImageDisplayer::ImageDisplayer(const char* _fileName) :
                 -1.0f, 1.0f, 0.0f,		0.0f, 1.0f		
 				};
 	
-	indicies = {
-				0, 1, 2,
-				0, 2, 3
-				};
-	catPoints = {0, 0, 0};
+	squareIndices = {
+					0, 1, 2,
+					0, 2, 3
+					};
+	catVertices = {};
+	catIndices = {};
 	initWindow();
 	texture = new Texture(_fileName);
 	adjustAspectRatio(); 
-	imgShader = new Shader("rsc/vertex.glsl", "rsc/fragment.glsl");
+	imgShader = new Shader("rsc/img_vertex.glsl", "rsc/img_fragment.glsl");
 	imgShader->link();
-	catmullShader = new Shader("rsc/vertex2.glsl", "rsc/fragment2.glsl");
-	catmullShader->addShader("rsc/tessControl.glsl", GL_TESS_CONTROL_SHADER);
-	catmullShader->addShader("rsc/tessEvaluation.glsl", GL_TESS_EVALUATION_SHADER);
+		cout << "IMG" << endl;
+	catmullShader = new Shader("rsc/cat_spline_curve_vertex.glsl", "rsc/cat_spline_fragment.glsl");
+	catmullShader->addShader("rsc/tess_control.glsl", GL_TESS_CONTROL_SHADER);
+	catmullShader->addShader("rsc/tess_evaluation.glsl", GL_TESS_EVALUATION_SHADER);
 	catmullShader->link();
-	catmullPointShader = new Shader("rsc/vertex3.glsl", "rsc/fragment2.glsl");
+		cout << "CURVE" << endl;
+	catmullPointShader = new Shader("rsc/cat_spline_point_vertex.glsl", "rsc/cat_spline_fragment.glsl");
 	catmullPointShader->link();
+		cout << "POINT" << endl;
 }
 
 ImageDisplayer::~ImageDisplayer()
@@ -116,21 +122,21 @@ int ImageDisplayer::initWindow()
 		}
 	);*/
 	
-	glGenBuffers(2, VBO); // gen 1 buffer and store id in VBO
-	glGenBuffers(1, &EBO);
+	glGenBuffers(2, VBO); // gen 2 buffer and store id in VBO
+	glGenBuffers(2, EBO);
 	glGenVertexArrays(2, VAO);
 	glBindVertexArray(VAO[0]);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
-	glBufferData(GL_ARRAY_BUFFER, verticies.size() * sizeof(float), verticies.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, squareVertices.size() * sizeof(float), squareVertices.data(), GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicies.size() * sizeof(float), indicies.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, squareIndices.size() * sizeof(float), squareIndices.data(), GL_STATIC_DRAW);
 
-	const int TEXTURE_COMPONENTS = 2;
-	const int VERTEX_COMPONENTS = 3;
-	const int COMPONENTS_PER_VERTEX = TEXTURE_COMPONENTS + VERTEX_COMPONENTS;
-	const int STRIDE = COMPONENTS_PER_VERTEX * sizeof(float);
+	int TEXTURE_COMPONENTS = 2;
+	int VERTEX_COMPONENTS = 3;
+	int COMPONENTS_PER_VERTEX = TEXTURE_COMPONENTS + VERTEX_COMPONENTS;
+	int STRIDE = COMPONENTS_PER_VERTEX * sizeof(float);
 	//position attributes
 	glVertexAttribPointer(0, VERTEX_COMPONENTS, GL_FLOAT, GL_FALSE, STRIDE, (void*)0);
 	glEnableVertexAttribArray(0);
@@ -140,11 +146,17 @@ int ImageDisplayer::initWindow()
 
 	// CATMULL ROM POINTS
 	glBindVertexArray(VAO[1]);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-	glBufferData(GL_ARRAY_BUFFER, catPoints.size() * sizeof(float), catPoints.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(0, VERTEX_COMPONENTS, GL_FLOAT, GL_FALSE, VERTEX_COMPONENTS * sizeof(float), (void*)0);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
+	glBufferData(GL_ARRAY_BUFFER, catVertices.size() * sizeof(float), catVertices.data(), GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[1]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, catIndices.size() * sizeof(float), catIndices.data(), GL_STATIC_DRAW);
+
+	COMPONENTS_PER_VERTEX = VERTEX_COMPONENTS;
+	STRIDE = COMPONENTS_PER_VERTEX * sizeof(float);
+	// points attribs
+	glVertexAttribPointer(0, VERTEX_COMPONENTS, GL_FLOAT, GL_FALSE, STRIDE, (void*)0);
 	glEnableVertexAttribArray(0);
 	
 	// unbind VAO, VBO, and EBO
@@ -180,25 +192,40 @@ int ImageDisplayer::run()
 		
 		glBindTexture(GL_TEXTURE_2D, texture->getID());
 		glBindVertexArray(VAO[0]);
-		glDrawElements(GL_TRIANGLES, indicies.size(), GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, squareIndices.size(), GL_UNSIGNED_INT, 0);
 		
 		//CATMULL POINTS
-		glUseProgram(catmullPointShader->getProgramID());
 		glBindVertexArray(VAO[1]);
-		glPointSize(25);
-		glDrawArrays(GL_POINTS, 0, catPoints.size() / 3);
-		
-		glUseProgram(catmullShader->getProgramID());
-		
-		if (rightMouseButtonClicked)
-		{
-			glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
-			glBufferData(GL_ARRAY_BUFFER, catPoints.size() * sizeof(float), catPoints.data(), GL_STATIC_DRAW);
-			rightMouseButtonClicked = false;
+		if (catVertices.size() > 0)
+		{	
+			if (rightMouseButtonClicked)
+			{
+				glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
+				glBufferData(GL_ARRAY_BUFFER, catVertices.size() * sizeof(float), catVertices.data(), GL_STATIC_DRAW);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[1]);
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, catIndices.size() * sizeof(float), catIndices.data(), GL_STATIC_DRAW);
+				rightMouseButtonClicked = false;
+			}
+			
+			glUseProgram(catmullPointShader->getProgramID());
+			glPointSize(25*scale);
+			glDrawArrays(GL_POINTS, 0, catVertices.size() / 3);
+			modelViewLocation = glGetUniformLocation(catmullPointShader->getProgramID(), "modelView");
+			glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, glm::value_ptr(modelView));
+			scaleLocation = glGetUniformLocation(catmullPointShader->getProgramID(), "scale");
+			glUniform1f(scaleLocation, scale);
+			
+			if (catIndices.size() >= 4)
+			{
+				glUseProgram(catmullShader->getProgramID());
+				modelViewLocation = glGetUniformLocation(catmullShader->getProgramID(), "modelView");
+				glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, glm::value_ptr(modelView));
+				scaleLocation = glGetUniformLocation(catmullShader->getProgramID(), "scale");
+				glUniform1f(scaleLocation, scale);
+				glPatchParameteri(GL_PATCH_VERTICES, 4);
+				glDrawElements(GL_PATCHES, catIndices.size(), GL_UNSIGNED_INT, 0);	// 3 components per vertex
+			}
 		}
-		glPatchParameteri(GL_PATCH_VERTICES, 2);
-		glDrawArrays(GL_PATCHES, 0, catPoints.size() / 3);	// 3 components per vertex
-		
 		glBindVertexArray(0);
 		
 		glfwSwapBuffers(window);
@@ -207,7 +234,7 @@ int ImageDisplayer::run()
 	}
 
 	glDeleteVertexArrays(2, VAO);
-	glDeleteBuffers(1, &EBO);
+	glDeleteBuffers(2, EBO);
 	glDeleteBuffers(2, VBO);
 
 	glfwTerminate();
@@ -243,17 +270,28 @@ void ImageDisplayer::processInput(GLFWwindow *window)
 
 	if (rightMouseButtonClicked)
 	{
-		float catX = -1.0f + mouseX * openGlUnitsPerPixelX;
-		float catY = 1.0f -  mouseY * openGlUnitsPerPixelY;
-		cout << catX << "  " << catY << endl;
-		catPoints.push_back(catX);
-		catPoints.push_back(catY);
-		catPoints.push_back(0);
-		//glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
-		//glBufferSubData(GL_ARRAY_BUFFER, 0, catPoints.size() * sizeof(float), catPoints.data());
-		//glBindVertexArray(0);
-		//rightMouseButtonClicked = false;
-
+		glm::mat4 inv = glm::inverse(modelView);
+		//cout << glm::to_string(modelView) << endl;
+		//cout << glm::to_string(inv) << endl;
+		glm::vec4 points = inv * glm::vec4(-1.0f + mouseX * openGlUnitsPerPixelX,
+											1.0f -  mouseY * openGlUnitsPerPixelY,
+											0, 1);
+		float catX = points.x;
+		float catY = points.y;
+		//cout << catX << "  " << catY << "  " << 0 << endl;
+		catVertices.push_back(catX);
+		catVertices.push_back(catY);
+		catVertices.push_back(0);
+		if (catIndices.size() < 4)
+			catIndices.push_back(catIndices.size());
+		else
+		{
+			unsigned int size = catIndices.size() - 1;
+			for (unsigned int i = 0; i < 4; i++)
+			{
+				catIndices.push_back(catIndices[size-3] + (i + 1));
+			}
+		}
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)

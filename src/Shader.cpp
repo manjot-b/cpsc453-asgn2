@@ -57,7 +57,8 @@ bool Shader::addShader(string shaderPath, GLenum type)
 				shaderType = "TESS EVALUATION"; break;
 		}
 		glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-		cerr << shaderType << " SHADER COMPILATION FAILED\n" << infoLog << endl;
+		cerr << shaderType << " SHADER COMPILATION FAILED\n" << 
+			shaderPath << endl << infoLog << endl;
 		return 0;
 	}
 	glAttachShader(ID, shader);

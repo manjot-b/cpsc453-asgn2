@@ -29,7 +29,6 @@ class Shader
 	private:
 		GLuint ID;
 		std::vector<GLuint> shaders;
-
 		std::string parseShader(std::string shaderPath);
 };
 #endif
