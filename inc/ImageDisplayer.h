@@ -1,3 +1,8 @@
+/*
+*   Displays images and draws catmull points
+*
+*/
+
 #ifndef IMAGEDISPLAYER_H
 #define IMAGESDISPLAYER_H
 
@@ -12,24 +17,32 @@ class ImageDisplayer
     public: 
         ImageDisplayer(const char *_fileName);
         ~ImageDisplayer();
-        int initWindow();        
-        int run();
+        
+        /*
+        *   run the program and exits once
+        *   the windows is closed
+        */
+        int run();          
     
     private:
+        /*
+        *   Initializes the glfw window
+        */
+        int initWindow();
         GLFWwindow *window;
         GLuint VBO[2], VAO[2], EBO[2];
-        char *fileName;
+        char *fileName;                                 // the image file name
         Texture *texture;
-        Shader *imgShader;
-        Shader *catmullShader;
-        Shader *catmullPointShader;
-        std::vector<float> squareVertices;
-        std::vector<unsigned int> squareIndices;
-        glm::mat4 modelView;
-        std::vector<float> catVertices;
+        Shader *imgShader;                              // shaded for the image
+        Shader *catmullShader;                          // shader the catmull curve
+        Shader *catmullPointShader;                     // shader for the catmull points
+        std::vector<float> squareVertices;              // verticies of the square the texture is drawn on
+        std::vector<unsigned int> squareIndices;        
+        glm::mat4 modelView;                            // sent to the shaders to transform
+        std::vector<float> catVertices;                 //  vertices of the catmull points
         std::vector<unsigned int> catIndices;
         float scale;
-        double prevMouseX, prevMouseY, mouseX, mouseY;
+        double prevMouseX, prevMouseY, mouseX, mouseY;  
         bool mouseInWindow;
         bool leftMouseButtonHeld;
         bool rightMouseButtonClicked;
@@ -39,9 +52,11 @@ class ImageDisplayer
         bool c_KeyHeld;
         bool v_KeyHeld;
 
+        /*
+        *   Process the input made by the user
+        */
         void processInput(GLFWwindow *window);
         void adjustAspectRatio();
-        void onCursorEnterCallback(GLFWwindow *window, int entered);
 };
 
 #endif

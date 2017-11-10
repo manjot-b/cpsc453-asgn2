@@ -66,7 +66,6 @@ int ImageDisplayer::initWindow()
 		return -1;
 	}
 	glfwMakeContextCurrent(window);
-	//glfwSetWindowAspectRatio(window, 1, 1);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
@@ -103,25 +102,10 @@ int ImageDisplayer::initWindow()
 				static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->rightMouseButtonClicked = true;
 		}
 	);
-
-	/*glfwSetCursorPosCallback(window, 
-		[] (GLFWwindow *window, double xpos, double ypos) {
-			//cout << "X: " << xpos << " Y: " << ypos << endl;
-			static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->prevMouseX = 
-				static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->mouseX;
-			
-			static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->prevMouseY = 
-				static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->mouseY;
-			
-			static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->mouseX = xpos;
-			
-			static_cast<ImageDisplayer *>(glfwGetWindowUserPointer(window))->mouseY = ypos;
-		}
-	);*/
 	
 	glGenBuffers(2, VBO); // gen 2 buffer and store id in VBO
 	glGenBuffers(2, EBO);
-	glGenVertexArrays(2, VAO);
+	glGenVertexArrays(2, VAO);	// one is for texture, the other is for catmull rom points
 	glBindVertexArray(VAO[0]);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
@@ -179,7 +163,9 @@ int ImageDisplayer::run()
 		imgShader->setUniform1i("grayScale", grayScale);
 		imgShader->setUniform1i("twoBitQuant", twoBitQuant);
 		
+		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture->getID());
+
 		glBindVertexArray(VAO[0]);
 		glDrawElements(GL_TRIANGLES, squareIndices.size(), GL_UNSIGNED_INT, 0);
 		
@@ -201,7 +187,7 @@ int ImageDisplayer::run()
 			glDrawArrays(GL_POINTS, 0, catVertices.size() / 3);
 			catmullPointShader->setUniformMatrix4fv("modelView", modelView);
 
-			if (catIndices.size() >= 4)
+			if (catIndices.size() >= 4)	// need at least 4 points to draw catmull spline
 			{
 				glUseProgram(catmullShader->getProgramID());
 				catmullShader->setUniformMatrix4fv("modelView", modelView);		
@@ -230,7 +216,7 @@ void ImageDisplayer::processInput(GLFWwindow *window)
 	prevMouseY = mouseY;
 	glfwGetCursorPos(window, &mouseX, &mouseY);
 
-	//float scale = 1.0f;
+	float scale = 1.0f;
 	float deltaX = 0.0f;
 	float deltaY = 0.0f;
 
@@ -247,29 +233,23 @@ void ImageDisplayer::processInput(GLFWwindow *window)
 	{
 		deltaX = (mouseX - prevMouseX) * openGlUnitsPerPixelX;
 		deltaY = -(mouseY - prevMouseY) * openGlUnitsPerPixelY;	// img y axis is inverted compared to opengl
-		//cout << "X: " << mouseX << " Y: " << mouseY << endl;
-		//cout << "dX: " << deltaX << " dY: " << deltaY << endl;
 	}
 
 	if (rightMouseButtonClicked)
 	{
 		glm::mat4 inv = glm::inverse(modelView);
 		glm::mat4 test(1.0f);
-		//test = glm::scale(test, glm::vec3(1.5f, 1.5f, 0.0f));
-		//cout << "INV" << glm::to_string(inv) << endl;
-		//cout << "MOD" << glm::to_string(modelView) << endl;
 		glm::vec4 points = inv * glm::vec4(-1.0f + mouseX * openGlUnitsPerPixelX,
 											1.0f -  mouseY * openGlUnitsPerPixelY,
 											0, 1);
 		float catX = points.x;
 		float catY = points.y;
-		//cout << catX << "  " << catY << "  " << 0 << endl;
 		catVertices.push_back(catX);
 		catVertices.push_back(catY);
-		catVertices.push_back(0);
-		if (catIndices.size() < 4)
+		catVertices.push_back(0);		// z coord
+		if (catIndices.size() < 4)		// need 4 points for the catmull spline
 			catIndices.push_back(catIndices.size());
-		else
+		else							// the new splines takes last 3 points and 1 new one
 		{
 			unsigned int size = catIndices.size() - 1;
 			for (unsigned int i = 0; i < 4; i++)
@@ -287,7 +267,7 @@ void ImageDisplayer::processInput(GLFWwindow *window)
 	if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)	// zoom out
 		scale *= 0.991f;	
 	
-	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && !c_KeyHeld)
+	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && !c_KeyHeld)	// toggle grayscale
 	{
 		c_KeyHeld = true;
 		if (grayScale) 
@@ -301,7 +281,7 @@ void ImageDisplayer::processInput(GLFWwindow *window)
 	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_RELEASE)
 		c_KeyHeld = false;
 
-	if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS && !v_KeyHeld)
+	if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS && !v_KeyHeld)	// toggle 2-bit quantization
 	{
 		v_KeyHeld = true;
 		if (twoBitQuant) 
@@ -317,18 +297,10 @@ void ImageDisplayer::processInput(GLFWwindow *window)
 
 	modelView = glm::translate(modelView, glm::vec3(deltaX, deltaY, 0));	
 	modelView = glm::scale(modelView, glm::vec3(scale, scale, scale));
-	
-	scale = 1.0f;
-	
+								
 }
 
 void ImageDisplayer::adjustAspectRatio()
 {
 	glfwSetWindowAspectRatio(window, texture->getWidth(), texture->getHeight());
-}
-
-void ImageDisplayer::onCursorEnterCallback(GLFWwindow *window, int entered)
-{
-	if (entered) mouseInWindow = true;
-	else mouseInWindow = false;
 }

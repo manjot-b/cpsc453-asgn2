@@ -1,5 +1,10 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
+/*
+*   A basic texture loader. You will have to 
+*   manually bind the texture before using
+* 
+*/
 class Texture
 {
     public:
