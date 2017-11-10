@@ -6,6 +6,7 @@ uniform mat4 modelView;
 
 void main()
 {
-    vec4 trans = modelView * vec4(vPosition, 1.0f);
-    gl_Position = vec4(trans.xyz, 1 / scale);
+    //vec4 trans = modelView * vec4(vPosition, 1.0f);
+    //gl_Position = vec4(trans.xyz, 1 / scale);
+    gl_Position = modelView * vec4(vPosition, 1.0);
 }

@@ -6,7 +6,7 @@
 #include <sstream>
 #include <fstream>
 #include <vector>
-
+#include <glm/gtc/type_ptr.hpp>	// used for value_ptr
 using namespace std;
 
 Shader::Shader(string vertexPath, string fragmentPath)
@@ -14,11 +14,7 @@ Shader::Shader(string vertexPath, string fragmentPath)
 	ID = glCreateProgram();
 	
 	addShader(vertexPath, GL_VERTEX_SHADER);
-	addShader(fragmentPath, GL_FRAGMENT_SHADER);
-	
-	//glAttachShader(ID, vertexShader);
-	//glAttachShader(ID, fragmentShader);
-	
+	addShader(fragmentPath, GL_FRAGMENT_SHADER);	
 }
 
 Shader::~Shader()
@@ -95,5 +91,14 @@ string Shader::parseShader(string path)
 	in.close();
 	return buffer;
 }
-
+void Shader::setUniform1i(const char *uniform, int value)
+{
+	GLint uniformLocation = glGetUniformLocation(ID, uniform);
+	glUniform1i(uniformLocation, value);
+}
+void Shader::setUniformMatrix4fv(const char *uniform, const glm::mat4 &matrix)
+{
+	GLint uniformLocation = glGetUniformLocation(ID, uniform);
+	glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, glm::value_ptr(matrix));
+}
 GLuint Shader::getProgramID() { return ID; }

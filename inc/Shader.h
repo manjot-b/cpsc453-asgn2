@@ -10,6 +10,7 @@
 #include <glad/glad.h>
 #include <string>
 #include <vector>
+#include <glm/glm.hpp>
 
 class Shader 
 {
@@ -25,6 +26,8 @@ class Shader
 		*/
 		bool addShader(std::string shaderPath, GLuint type);
 		bool link();
+		void setUniform1i(const char *uniform, int value);
+		void setUniformMatrix4fv(const char *uniform, const glm::mat4 &matrix);
 	
 	private:
 		GLuint ID;

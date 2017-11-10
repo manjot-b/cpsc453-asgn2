@@ -34,15 +34,12 @@ ImageDisplayer::ImageDisplayer(const char* _fileName) :
 	adjustAspectRatio(); 
 	imgShader = new Shader("rsc/img_vertex.glsl", "rsc/img_fragment.glsl");
 	imgShader->link();
-		cout << "IMG" << endl;
 	catmullShader = new Shader("rsc/cat_spline_curve_vertex.glsl", "rsc/cat_spline_fragment.glsl");
 	catmullShader->addShader("rsc/tess_control.glsl", GL_TESS_CONTROL_SHADER);
 	catmullShader->addShader("rsc/tess_evaluation.glsl", GL_TESS_EVALUATION_SHADER);
 	catmullShader->link();
-		cout << "CURVE" << endl;
 	catmullPointShader = new Shader("rsc/cat_spline_point_vertex.glsl", "rsc/cat_spline_fragment.glsl");
 	catmullPointShader->link();
-		cout << "POINT" << endl;
 }
 
 ImageDisplayer::~ImageDisplayer()
@@ -176,25 +173,17 @@ int ImageDisplayer::run()
 		glClearColor(0.3f, 1.0f, 0.8f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		// DRAW IMAGE AS A TEXTURE
 		glUseProgram(imgShader->getProgramID());
-		
-		GLint modelViewLocation = glGetUniformLocation(imgShader->getProgramID(), "modelView");
-		glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, glm::value_ptr(modelView));
-
-		GLint grayScaleLocation = glGetUniformLocation(imgShader->getProgramID(), "grayScale");
-		glUniform1i(grayScaleLocation, grayScale);
-
-		GLint twoBitQuantLocation = glGetUniformLocation(imgShader->getProgramID(), "twoBitQuant");
-		glUniform1i(twoBitQuantLocation, twoBitQuant);
-
-		GLint scaleLocation = glGetUniformLocation(imgShader->getProgramID(), "scale");
-		glUniform1f(scaleLocation, scale);
+		imgShader->setUniformMatrix4fv("modelView", modelView);
+		imgShader->setUniform1i("grayScale", grayScale);
+		imgShader->setUniform1i("twoBitQuant", twoBitQuant);
 		
 		glBindTexture(GL_TEXTURE_2D, texture->getID());
 		glBindVertexArray(VAO[0]);
 		glDrawElements(GL_TRIANGLES, squareIndices.size(), GL_UNSIGNED_INT, 0);
 		
-		//CATMULL POINTS
+		// DRAW CATMULL POINTS AND CURVE
 		glBindVertexArray(VAO[1]);
 		if (catVertices.size() > 0)
 		{	
@@ -208,22 +197,16 @@ int ImageDisplayer::run()
 			}
 			
 			glUseProgram(catmullPointShader->getProgramID());
-			glPointSize(25*scale);
+			glPointSize(5*scale);
 			glDrawArrays(GL_POINTS, 0, catVertices.size() / 3);
-			modelViewLocation = glGetUniformLocation(catmullPointShader->getProgramID(), "modelView");
-			glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, glm::value_ptr(modelView));
-			scaleLocation = glGetUniformLocation(catmullPointShader->getProgramID(), "scale");
-			glUniform1f(scaleLocation, scale);
-			
+			catmullPointShader->setUniformMatrix4fv("modelView", modelView);
+
 			if (catIndices.size() >= 4)
 			{
 				glUseProgram(catmullShader->getProgramID());
-				modelViewLocation = glGetUniformLocation(catmullShader->getProgramID(), "modelView");
-				glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, glm::value_ptr(modelView));
-				scaleLocation = glGetUniformLocation(catmullShader->getProgramID(), "scale");
-				glUniform1f(scaleLocation, scale);
+				catmullShader->setUniformMatrix4fv("modelView", modelView);		
 				glPatchParameteri(GL_PATCH_VERTICES, 4);
-				glDrawElements(GL_PATCHES, catIndices.size(), GL_UNSIGNED_INT, 0);	// 3 components per vertex
+				glDrawElements(GL_PATCHES, catIndices.size(), GL_UNSIGNED_INT, 0);
 			}
 		}
 		glBindVertexArray(0);
@@ -273,8 +256,8 @@ void ImageDisplayer::processInput(GLFWwindow *window)
 		glm::mat4 inv = glm::inverse(modelView);
 		glm::mat4 test(1.0f);
 		//test = glm::scale(test, glm::vec3(1.5f, 1.5f, 0.0f));
-		//cout << glm::to_string(test) << endl;
-		//cout << glm::to_string(inv) << endl;
+		//cout << "INV" << glm::to_string(inv) << endl;
+		//cout << "MOD" << glm::to_string(modelView) << endl;
 		glm::vec4 points = inv * glm::vec4(-1.0f + mouseX * openGlUnitsPerPixelX,
 											1.0f -  mouseY * openGlUnitsPerPixelY,
 											0, 1);
@@ -333,7 +316,9 @@ void ImageDisplayer::processInput(GLFWwindow *window)
 		v_KeyHeld = false;	
 
 	modelView = glm::translate(modelView, glm::vec3(deltaX, deltaY, 0));	
-	//modelView = glm::scale(modelView, glm::vec3(scale, scale, 0));
+	modelView = glm::scale(modelView, glm::vec3(scale, scale, scale));
+	
+	scale = 1.0f;
 	
 }
 
